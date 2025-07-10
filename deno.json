@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "start:deno": "OTEL_DENO=true ./main.ts",
+    "start:node": "./main.ts"
+  }
+}
