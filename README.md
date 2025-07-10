@@ -46,6 +46,12 @@ Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from ma
 We can see that the context is not serialized to the `carrier` to be propagated
 to the Worker, and so the span in the Worker belongs to a new `traceId`.
 
+_UPDATE:_ I've added an option to apply the
+[work-around](https://github.com/denoland/deno/issues/28082#issuecomment-2653379957)...
+
+`deno run start:deno-workaround` - this produces the expected behaviour (as
+below)
+
 ### `deno run start:node`
 
 ```
@@ -76,3 +82,9 @@ Worker span inherits the `traceId` from the main thread.
 ## Conclusion
 
 I believe this may be a bug in the Deno OpenTelemetry implementation.
+
+GitHub issues:
+
+- https://github.com/denoland/deno/issues/30064 - my bug report
+- https://github.com/denoland/deno/issues/28082 - similar issue showing
+  work-around

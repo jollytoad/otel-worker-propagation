@@ -1,6 +1,7 @@
 {
   "tasks": {
     "start:deno": "OTEL_DENO=true ./main.ts",
+    "start:deno-workaround": "OTEL_DENO=true OTEL_DENO_BUG_WORKAROUND=true ./main.ts",
     "start:node": "./main.ts"
   }
 }
