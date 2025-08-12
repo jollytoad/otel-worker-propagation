@@ -1,7 +1,6 @@
+/// <reference lib="deno.worker" />
 import "./init.ts";
 import { context, propagation, trace } from "npm:@opentelemetry/api";
-
-declare const self: Worker;
 
 const tracer = trace.getTracer("worker-thread");
 
@@ -12,6 +11,10 @@ self.onmessage = (event) => {
     // Reconstruct the span context from the serialized data
     const parentContext = propagation.extract(context.active(), traceContext);
     context.with(parentContext, () => {
+      const baggage = propagation.getActiveBaggage();
+
+      console.log("Worker Baggage", baggage?.getAllEntries());
+
       // Create a child span in the worker with the propagated context
       // const childSpan = tracer.startSpan('worker-operation' /*, {}, parentContext*/);
       tracer.startActiveSpan("worker-operation", (childSpan) => {

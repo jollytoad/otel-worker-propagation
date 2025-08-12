@@ -7,46 +7,59 @@ import { context, propagation, trace } from "npm:@opentelemetry/api";
 const tracer = trace.getTracer("main-thread");
 
 function doit() {
-  return tracer.startActiveSpan("main-operation", (span) => {
-    console.log("Main Span", trace.getActiveSpan()?.spanContext());
+  let baggage = propagation.getActiveBaggage() ?? propagation.createBaggage();
 
-    // Create and configure the worker
-    const worker = new Worker(new URL("./worker.ts", import.meta.url), {
-      type: "module",
-    });
+  baggage = baggage.setEntry("test", { value: "bagged" });
 
-    const { promise, resolve } = Promise.withResolvers<Response>();
+  console.log("Main Baggage", baggage?.getAllEntries());
 
-    // Handle worker responses
-    worker.onmessage = (event) => {
-      console.log("Response from worker:", event.data);
+  const baggageContext = propagation.setBaggage(context.active(), baggage);
 
-      // End the span when work is complete
-      if (event.data.type === "WORK_COMPLETE") {
-        span.addEvent("Worker complete");
-        span.end();
-        worker.terminate();
-        resolve(new Response());
-      }
-    };
+  return tracer.startActiveSpan(
+    "main-operation",
+    {},
+    baggageContext,
+    (span) => {
+      console.log("Main Span", trace.getActiveSpan()?.spanContext());
 
-    span.addEvent("Worker started");
+      // Create and configure the worker
+      const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+        type: "module",
+      });
 
-    // Serialize the span context for transmission
-    const carrier: Record<string, string> = {};
-    propagation.inject(context.active(), carrier);
+      const { promise, resolve } = Promise.withResolvers<Response>();
 
-    console.debug("Context Carrier:", carrier);
+      // Handle worker responses
+      worker.onmessage = (event) => {
+        console.log("Response from worker:", event.data);
 
-    // Send the serialized context to the worker
-    worker.postMessage({
-      type: "START_WORK",
-      traceContext: carrier,
-      data: { message: "Hello from main thread" },
-    });
+        // End the span when work is complete
+        if (event.data.type === "WORK_COMPLETE") {
+          span.addEvent("Worker complete");
+          span.end();
+          worker.terminate();
+          resolve(new Response());
+        }
+      };
 
-    return promise;
-  });
+      span.addEvent("Worker started");
+
+      // Serialize the span context for transmission
+      const carrier: Record<string, string> = {};
+      propagation.inject(context.active(), carrier);
+
+      console.debug("Context Carrier:", carrier);
+
+      // Send the serialized context to the worker
+      worker.postMessage({
+        type: "START_WORK",
+        traceContext: carrier,
+        data: { message: "Hello from main thread" },
+      });
+
+      return promise;
+    },
+  );
 }
 
 if (Deno.args[0] === "serve") {

@@ -7,27 +7,28 @@ This demonstrates propagation of the OpenTelemetry context into Worker by
 Or rather, this is my understanding of how it should be done.
 
 The only problem is that the propagation doesn't appear to work in Deno's native
-OpenTelemetry support at present (v2.4.1).
+OpenTelemetry support at present (v2.4.3).
 
 ## Usage
 
-- `deno run start:deno` - run the example with native Deno OTEL
-- `deno run start:node` - run the example with NodeSDK OTEL instead
+- `deno task start:deno` - run the example with native Deno OTEL
+- `deno task start:node` - run the example with NodeSDK OTEL instead
 
 You can also pass the argument `serve` to wrap the example in `Deno.serve`...
 
-- `deno run start:deno serve`
-- `deno run start:node serve`
+- `deno task start:deno serve`
+- `deno task start:node serve`
 
 and then hit the URL it gives.
 
 ## Outcomes
 
-### `deno run start:deno`
+### `deno task start:deno`
 
 ```
 Task start:deno OTEL_DENO=true ./main.ts
 Using Deno OTEL
+Main Baggage [ [ "test", { value: "bagged" } ] ]
 Main Span [Object: null prototype] {
   traceId: "14a985b730ca395a0d896ac21f3b1ffe",
   spanId: "fe955c0a759fbe47",
@@ -35,6 +36,7 @@ Main Span [Object: null prototype] {
 }
 Context Carrier: {}
 Using Deno OTEL
+Worker Baggage undefined
 Worker Span [Object: null prototype] {
   traceId: "7494e7369a14ecf7014cb81247004c35",
   spanId: "24ecfec49a940c7c",
@@ -46,13 +48,7 @@ Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from ma
 We can see that the context is not serialized to the `carrier` to be propagated
 to the Worker, and so the span in the Worker belongs to a new `traceId`.
 
-_UPDATE:_ I've added an option to apply the
-[work-around](https://github.com/denoland/deno/issues/28082#issuecomment-2653379957)...
-
-`deno run start:deno-workaround` - this produces the expected behaviour (as
-below)
-
-### `deno run start:node`
+### `deno task start:node`
 
 ```
 Task start:node ./main.ts
@@ -65,8 +61,10 @@ Main Span {
 }
 Context Carrier: {
   traceparent: "00-ba2bf6c1079abf2e4aa749eea25a15de-f06b1eb42ad8a0e0-01"
+  baggage: "test=bagged"
 }
 Using NodeSDK OTEL
+Worker Baggage [ [ "test", { value: "bagged" } ] ]
 Worker Span {
   traceId: "ba2bf6c1079abf2e4aa749eea25a15de",
   spanId: "9a0f753dbd54a58a",
@@ -78,6 +76,37 @@ Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from ma
 
 And in this case, the `carrier` is correctly serialized and propagated, so the
 Worker span inherits the `traceId` from the main thread.
+
+### `deno task start:deno-workaround`
+
+I've added an option to apply the
+[work-around](https://github.com/denoland/deno/issues/28082#issuecomment-2653379957)...
+
+```
+Using Deno OTEL
+Using propagation bug workaround
+Main Baggage [ [ "test", { value: "bagged" } ] ]
+Main Span [Object: null prototype] {
+  traceId: "101eec1cf1b75be67fd66df2e0ec1723",
+  spanId: "48abd1b60e5ed48b",
+  traceFlags: 1
+}
+Context Carrier: {
+  traceparent: "00-101eec1cf1b75be67fd66df2e0ec1723-48abd1b60e5ed48b-01"
+}
+Using Deno OTEL
+Using propagation bug workaround
+Worker Baggage undefined
+Worker Span [Object: null prototype] {
+  traceId: "101eec1cf1b75be67fd66df2e0ec1723",
+  spanId: "fd7a2c3cf660eb20",
+  traceFlags: 1
+}
+Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from main thread" }
+```
+
+You may notice that this fixed the propagation of the parent span, but not the
+propagation of the `baggage`.
 
 ## Conclusion
 
