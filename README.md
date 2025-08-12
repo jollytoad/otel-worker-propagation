@@ -53,6 +53,7 @@ to the Worker, and so the span in the Worker belongs to a new `traceId`.
 ```
 Task start:node ./main.ts
 Using NodeSDK OTEL
+Main Baggage [ [ "test", { value: "bagged" } ] ]
 Main Span {
   traceId: "ba2bf6c1079abf2e4aa749eea25a15de",
   spanId: "f06b1eb42ad8a0e0",
