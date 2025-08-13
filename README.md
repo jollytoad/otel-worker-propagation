@@ -81,7 +81,8 @@ Worker span inherits the `traceId` from the main thread.
 ### `deno task start:deno-workaround`
 
 I've added an option to apply the
-[work-around](https://github.com/denoland/deno/issues/28082#issuecomment-2653379957)...
+[work-around](https://github.com/denoland/deno/issues/28082#issuecomment-3183171095)
+for trace context and baggage propagation...
 
 ```
 Using Deno OTEL
@@ -93,7 +94,8 @@ Main Span [Object: null prototype] {
   traceFlags: 1
 }
 Context Carrier: {
-  traceparent: "00-101eec1cf1b75be67fd66df2e0ec1723-48abd1b60e5ed48b-01"
+  traceparent: "00-101eec1cf1b75be67fd66df2e0ec1723-48abd1b60e5ed48b-01",
+  baggage: "test=bagged"
 }
 Using Deno OTEL
 Using propagation bug workaround
@@ -106,8 +108,27 @@ Worker Span [Object: null prototype] {
 Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from main thread" }
 ```
 
-You may notice that this fixed the propagation of the parent span, but not the
-propagation of the `baggage`.
+### The work-around
+
+This is the work-around required to get propagation working in Deno's native
+OpenTelemetry:
+
+```
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from "npm:@opentelemetry/core";
+
+// @ts-ignore: work-around Deno bug
+globalThis[Symbol.for("opentelemetry.js.api.1")].propagation =
+  new CompositePropagator({
+    propagators: [
+      new W3CTraceContextPropagator(),
+      new W3CBaggagePropagator(),
+    ],
+  });
+```
 
 ## Conclusion
 
