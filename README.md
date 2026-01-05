@@ -9,6 +9,11 @@ Or rather, this is my understanding of how it should be done.
 The only problem is that the propagation doesn't appear to work in Deno's native
 OpenTelemetry support at present (v2.4.3).
 
+## UPDATE
+
+> [!IMPORTANT]
+> **This bug was fixed in Deno v2.6.2**
+
 ## Usage
 
 - `deno task start:deno` - run the example with native Deno OTEL
@@ -47,6 +52,9 @@ Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from ma
 
 We can see that the context is not serialized to the `carrier` to be propagated
 to the Worker, and so the span in the Worker belongs to a new `traceId`.
+
+> [!IMPORTANT]
+> This bug was fixed in Deno v2.6.2
 
 ### `deno task start:node`
 
@@ -110,6 +118,9 @@ Response from worker: { type: "WORK_COMPLETE", result: "Processed: Hello from ma
 
 ### The work-around
 
+> [!IMPORTANT]
+> This work-around is no longer required since Deno v2.6.2
+
 This is the work-around required to get propagation working in Deno's native
 OpenTelemetry:
 
@@ -139,3 +150,6 @@ GitHub issues:
 - https://github.com/denoland/deno/issues/30064 - my bug report
 - https://github.com/denoland/deno/issues/28082 - similar issue showing
   work-around
+
+> [!IMPORTANT]
+> **This bug was fixed in Deno v2.6.2**
